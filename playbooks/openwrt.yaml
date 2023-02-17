@@ -1,0 +1,58 @@
+---
+- name: openwrt
+  hosts: openwrt
+  tasks:
+    - name: Ensure Utils
+      opkg:
+        name:
+          - fdisk
+          - python3-docker
+          - python3-speedtest-cli
+          - htop
+          - kmod-macvlan
+          - kmod-sound-hda-intel
+          - kmod-sound-core
+        state: present
+    - name: Edit /etc/rc.local (overwrite)
+      copy:
+        content: alsactl init   # to initialize your soundcard at boot up
+        dest: /etc/rc.local
+        backup: yes
+    - name: Ensure Docker
+      opkg:
+        name:
+          - dockerd
+          - docker
+          - docker-compose
+          - luci-app-dockerman
+        state: present
+    - name: Luci Plugins
+      opkg:
+        name:
+          - luci-app-nlbwmon
+          - luci-app-vnstat
+          - luci-app-statistics
+    # - name: Copy network configuration
+    #   copy:
+    #     src: network
+    #     dest: /etc/config/network
+    #     backup: yes
+    #     mode: 0600
+    #     owner: root
+    #     group: root
+    # - name: Restart network service for interface eth0
+    #   ansible.builtin.service:
+    #       name: network
+    #       state: restarted
+
+    - name: Shairpoint-client
+      docker_container:
+        name: shairplay-sync
+        image: mikebrady/shairport-sync:latest
+        command: -- -d hw:1 -c PCM
+        state: started
+        restart: yes
+        restart_policy: unless-stopped
+        network_mode: host
+        devices:
+          - "/dev/snd"
